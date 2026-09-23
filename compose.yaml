@@ -1,0 +1,62 @@
+name: silih-asih
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: >-
+      sh -c "composer install --no-interaction &&
+      php artisan migrate --force &&
+      php artisan serve --host=0.0.0.0 --port=8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:${APP_PORT:-8000}
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-silih_asih}
+      DB_USERNAME: ${DB_USERNAME:-silih_asih}
+      DB_PASSWORD: ${DB_PASSWORD:-silih_asih_dev}
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    volumes:
+      - .:/var/www/html
+
+  frontend:
+    image: node:22-alpine
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    depends_on:
+      - app
+    environment:
+      VITE_APP_NAME: ${APP_NAME:-Silih Asih}
+    ports:
+      - "${VITE_PORT:-5173}:5173"
+    volumes:
+      - .:/var/www/html
+      - node_modules:/var/www/html/node_modules
+    working_dir: /var/www/html
+
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-silih_asih}
+      POSTGRES_USER: ${DB_USERNAME:-silih_asih}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-silih_asih_dev}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "${DB_FORWARD_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+volumes:
+  node_modules:
+  postgres_data:
