@@ -1,7 +1,7 @@
 # Architecture
 
 ## Keputusan
-Arsitektur usulan: monolith modular Laravel dengan REST API, React + Tailwind, PostgreSQL, Docker Compose untuk development. Microservices, AI, layanan berbayar, dan infrastruktur rumit dihindari karena belum ada kebutuhan atau bukti volume. Fondasi yang terpasang saat ini adalah Laravel 13.33 pada PHP 8.4, React 19.3, Tailwind CSS 4.3, Vite 8.3, dan PostgreSQL 18 melalui Docker. Lockfile menjadi sumber versi persis; upgrade mayor harus melalui pemeriksaan kompatibilitas dan pengujian.
+Arsitektur usulan: monolith modular Laravel dengan REST API, React + Tailwind, SQLite, dan Docker Compose untuk development. Microservices, AI, layanan berbayar, dan infrastruktur rumit dihindari karena belum ada kebutuhan atau bukti volume. Fondasi yang terpasang saat ini adalah Laravel 13.33 pada PHP 8.4, React 19.3, Tailwind CSS 4.3, Vite 8.3, dan SQLite 3. Lockfile menjadi sumber versi persis; upgrade mayor harus melalui pemeriksaan kompatibilitas dan pengujian.
 
 ## Diagram
 ```mermaid
@@ -9,7 +9,7 @@ flowchart LR
  Browser[React web] --> API[Laravel REST API]
  API --> Auth[Auth and policy]
  API --> Domain[Application services]
- Domain --> DB[(PostgreSQL)]
+ Domain --> DB[(SQLite)]
  Domain --> Log[Structured logs]
  DB --> Backup[Encrypted backup]
 ```
@@ -35,7 +35,7 @@ Dependensi modul diarahkan melalui application service: `Ordering` membaca kontr
 ## Keamanan dan operasi
 Password di-hash framework; session cookie, CSRF, rate limit login, least privilege, validasi input, output escaping, HTTPS production, secret lewat environment/secret store, dan tidak ada secret di dokumentasi. Log berisi request ID, actor, route, durasi, dan error tanpa password atau data sensitif. Error internal dipetakan ke pesan umum.
 
-Backup PostgreSQL terjadwal, terenkripsi, dan diuji restore di environment terpisah. Frekuensi, retensi, RPO, dan RTO menunggu V-13/V-14 dan tidak boleh ditebak. Migration production dijalankan terkontrol setelah backup dan memiliki rencana rollback/forward-fix.
+Backup file SQLite terjadwal, terenkripsi, dan diuji restore di environment terpisah. Backup harus dibuat melalui mekanisme backup SQLite agar snapshot konsisten. Frekuensi, retensi, RPO, dan RTO menunggu V-13/V-14 dan tidak boleh ditebak. Migration production dijalankan terkontrol setelah backup dan memiliki rencana rollback/forward-fix.
 
 ## Environment dan deployment minimum
 
@@ -46,7 +46,7 @@ Backup PostgreSQL terjadwal, terenkripsi, dan diuji restore di environment terpi
 | Staging/UAT | UAT dan latihan deployment | data anonim/sintetis; konfigurasi mendekati production; akses terbatas |
 | Production | Operasional | debug mati, HTTPS, backup, monitoring, least privilege, dan data demo dilarang |
 
-Deployment minimum adalah satu host aplikasi yang menjalankan web server, PHP/Laravel, dan build statis React, serta satu PostgreSQL yang dapat berada pada host sama untuk skala capstone atau host terpisah bila risiko/perangkat menuntut. Wajib ada HTTPS, persistent storage database, health check aplikasi/database, log rotation, backup terjadwal, sinkronisasi waktu, dan prosedur restore. Spesifikasi CPU/RAM/storage baru ditentukan setelah volume V-03 dan anggaran/perangkat V-13 tersedia.
+Deployment minimum adalah satu host aplikasi yang menjalankan web server, PHP/Laravel, build statis React, dan file SQLite pada storage persisten. Wajib ada HTTPS, health check aplikasi/database, log rotation, backup terjadwal, sinkronisasi waktu, dan prosedur restore. Spesifikasi CPU/RAM/storage baru ditentukan setelah volume V-03 dan anggaran/perangkat V-13 tersedia.
 
 ## Queue dan realtime
 MVP tidak memerlukan queue untuk transaksi inti karena konsistensi harus selesai sinkron. Queue boleh dipakai kemudian untuk ekspor laporan/notifikasi yang tidak menentukan saldo. Realtime tidak wajib; layar dapur dapat polling/refresh terkontrol sampai kebutuhan dan jaringan divalidasi.

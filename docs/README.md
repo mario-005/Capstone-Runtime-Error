@@ -14,7 +14,7 @@ Dokumentasi ini menjadi acuan awal untuk aplikasi internal yang menghubungkan pe
 2. [Business Process](business-process.md) - alur kerja usulan dan tanggung jawab.
 3. [Business Rules](business-rules.md) - sumber utama aturan stok, pesanan, dan status.
 4. [Design](design.md) - layar dan interaksi.
-5. [Database](db.md) - model data PostgreSQL.
+5. [Database](db.md) - model data SQLite.
 6. [API](api.md) - kontrak REST.
 7. [Architecture](architecture.md) - pembagian modul dan deployment.
 8. [Testing](testing.md) - strategi dan test case.
@@ -23,7 +23,7 @@ Dokumentasi ini menjadi acuan awal untuk aplikasi internal yang menghubungkan pe
 11. [Traceability](traceability.md) - jejak kebutuhan sampai test case.
 
 ## Keputusan desain sementara
-Laravel sebagai backend monolith modular dengan REST API, React dan Tailwind CSS sebagai frontend, PostgreSQL sebagai database, dan Docker Compose untuk development. Fondasi repository saat ini memakai Laravel 13.33, PHP 8.4, React 19.3, Tailwind CSS 4.3, Vite 8.3, dan image PostgreSQL 18. Versi persis terkunci di `composer.lock` dan `package-lock.json`. Untuk aplikasi web milik sendiri, autentikasi yang diusulkan adalah session cookie Laravel Sanctum dengan CSRF; token personal hanya ditambahkan bila ada client non-browser yang benar-benar dibutuhkan.
+Laravel sebagai backend monolith modular dengan REST API, React dan Tailwind CSS sebagai frontend, SQLite sebagai database, dan Docker Compose untuk development. Fondasi repository saat ini memakai Laravel 13.33, PHP 8.4, React 19.3, Tailwind CSS 4.3, Vite 8.3, dan SQLite 3. Versi persis terkunci di `composer.lock` dan `package-lock.json`. Untuk aplikasi web milik sendiri, autentikasi yang diusulkan adalah session cookie Laravel Sanctum dengan CSRF; token personal hanya ditambahkan bila ada client non-browser yang benar-benar dibutuhkan.
 
 Keputusan yang menunggu validasi: penggunaan sumber daya bersama, pembayaran sederhana, aturan prioritas, perangkat di dapur, kebutuhan offline, dan target waktu pemenuhan.
 

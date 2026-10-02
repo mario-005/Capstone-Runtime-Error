@@ -1,6 +1,6 @@
 # Database Design
 
-PostgreSQL adalah pilihan usulan. Nama field pada dokumen ini menjadi kontrak bagi [api.md](api.md). ID memakai `uuid`; waktu memakai `timestamptz`; kuantitas memakai `numeric(14,3)` dan nilai uang, bila diperlukan, memakai `numeric(14,2)`. Semua keputusan masih harus divalidasi sebelum migrasi dikunci.
+SQLite adalah database yang digunakan. Nama field pada dokumen ini menjadi kontrak bagi [api.md](api.md). ID UUID dan waktu ISO 8601 UTC disimpan sebagai `TEXT`. Kuantitas serta nilai uang disimpan sebagai `NUMERIC`; presisi tiga dan dua desimal divalidasi pada aplikasi karena SQLite tidak membatasi skala `NUMERIC`. Foreign key, constraint domain, dan partial unique index tetap ditegakkan oleh database.
 
 ## ERD
 ```mermaid
@@ -70,8 +70,8 @@ Untuk `PER_PORTION`, `yield_quantity` menyatakan jumlah porsi yang dihasilkan re
 | `stock_movements` | `id uuid PK`; `ingredient_id uuid NOT NULL FK ingredients ON DELETE RESTRICT`; `movement_type varchar(20) NOT NULL CHECK (movement_type IN ('RECEIPT','USAGE','WASTE','ADJUSTMENT'))`; `direction varchar(3) NOT NULL CHECK (direction IN ('IN','OUT'))`; `source_quantity numeric(14,3) NOT NULL CHECK (> 0)`; `source_unit_id uuid NOT NULL FK units`; `conversion_factor numeric(18,8) NOT NULL CHECK (> 0)`; `quantity numeric(14,3) NOT NULL CHECK (> 0)` dalam base unit; `reason text NULL`; `reference_number varchar(100) NULL`; `reference_type varchar(50) NULL`; `reference_id uuid NULL`; `created_by uuid NOT NULL FK users`; `idempotency_key_id uuid NULL UNIQUE FK idempotency_keys`; `created_at timestamptz NOT NULL` |
 | `order_status_histories` | `id uuid PK`; `order_id uuid NOT NULL FK orders ON DELETE RESTRICT`; `from_status varchar(30) NULL`; `to_status varchar(30) NOT NULL`; `changed_by uuid NOT NULL FK users`; `changed_at timestamptz NOT NULL`; `reason text NULL` |
 | `production_status_histories` | `id uuid PK`; `production_id uuid NOT NULL FK productions ON DELETE RESTRICT`; `from_status varchar(20) NULL`; `to_status varchar(20) NOT NULL`; `changed_by uuid NOT NULL FK users`; `changed_at timestamptz NOT NULL`; `reason text NULL` |
-| `idempotency_keys` | `id uuid PK`; `user_id uuid NOT NULL FK users ON DELETE RESTRICT`; `scope varchar(120) NOT NULL`; `request_key varchar(100) NOT NULL`; `fingerprint char(64) NOT NULL`; `status varchar(20) NOT NULL CHECK (status IN ('PROCESSING','COMPLETED','FAILED'))`; `response_code integer NULL`; `response_json jsonb NULL`; `created_at timestamptz NOT NULL`; `expires_at timestamptz NOT NULL`; `UNIQUE (user_id, scope, request_key)` |
-| `audit_logs` | `id uuid PK`; `actor_id uuid NULL FK users ON DELETE SET NULL`; `request_id uuid NULL`; `action varchar(80) NOT NULL`; `entity_type varchar(80) NOT NULL`; `entity_id uuid NOT NULL`; `before_json jsonb NULL`; `after_json jsonb NULL`; `created_at timestamptz NOT NULL` |
+| `idempotency_keys` | `id uuid PK`; `user_id uuid NOT NULL FK users ON DELETE RESTRICT`; `scope varchar(120) NOT NULL`; `request_key varchar(100) NOT NULL`; `fingerprint char(64) NOT NULL`; `status varchar(20) NOT NULL CHECK (status IN ('PROCESSING','COMPLETED','FAILED'))`; `response_code integer NULL`; `response_json json NULL`; `created_at timestamptz NOT NULL`; `expires_at timestamptz NOT NULL`; `UNIQUE (user_id, scope, request_key)` |
+| `audit_logs` | `id uuid PK`; `actor_id uuid NULL FK users ON DELETE SET NULL`; `request_id uuid NULL`; `action varchar(80) NOT NULL`; `entity_type varchar(80) NOT NULL`; `entity_id uuid NOT NULL`; `before_json json NULL`; `after_json json NULL`; `created_at timestamptz NOT NULL` |
 
 ## Index dan kardinalitas penting
 
@@ -84,7 +84,7 @@ Untuk `PER_PORTION`, `yield_quantity` menyatakan jumlah porsi yang dihasilkan re
 
 ## Transaksi dan pengendalian konkurensi
 
-`stock_movements` adalah ledger append-only; saldo cepat disimpan pada `ingredients.physical_quantity` dan `allocated_quantity`. Setiap penerimaan, waste, adjustment, penggunaan, alokasi, pelepasan, atau pembatalan memperbarui ledger/saldo dalam satu transaksi. Service mengunci baris `ingredients` dengan `SELECT ... FOR UPDATE`, lalu alokasi terkait dalam urutan ID yang konsisten untuk mengurangi deadlock.
+`stock_movements` adalah ledger append-only; saldo cepat disimpan pada `ingredients.physical_quantity` dan `allocated_quantity`. Setiap penerimaan, waste, adjustment, penggunaan, alokasi, pelepasan, atau pembatalan memperbarui ledger/saldo dalam satu transaksi write. SQLite menserialisasi proses tulis, sehingga `SELECT ... FOR UPDATE` tidak digunakan. Service tetap memproses `ingredients` dan alokasi terkait dalam urutan ID yang konsisten.
 
 Konfirmasi/reallocation, pemakaian, pembatalan, dan fulfillment memeriksa `orders.lock_version` atau `productions.lock_version`. Versi yang tidak cocok menghasilkan 409. Deadlock dapat dicoba ulang secara terbatas hanya bila idempotency key tersedia. Invariant setelah commit: fisik dan alokasi tidak negatif, alokasi tidak melebihi fisik, serta `consumed + released <= allocated`.
 

@@ -2,7 +2,7 @@
 
 ## Pendekatan berbasis risiko
 
-Prioritas tertinggi adalah saldo/alokasi, konsumsi sebagian, status, snapshot resep, permission, idempotensi, serta konkurensi. Unit test memeriksa kalkulator kebutuhan, konversi, pembulatan, dan state machine. Feature/integration test memakai PostgreSQL dan memeriksa API beserta transaksi. UAT memeriksa kecocokan alur kerja, sedangkan usability test mengukur waktu dan kesalahan pengguna. Hasil simulasi tidak dianggap bukti dampak operasional nyata.
+Prioritas tertinggi adalah saldo/alokasi, konsumsi sebagian, status, snapshot resep, permission, idempotensi, serta konkurensi. Unit test memeriksa kalkulator kebutuhan, konversi, pembulatan, dan state machine. Feature/integration test memakai SQLite dan memeriksa API beserta transaksi. UAT memeriksa kecocokan alur kerja, sedangkan usability test mengukur waktu dan kesalahan pengguna. Hasil simulasi tidak dianggap bukti dampak operasional nyata.
 
 Setiap test otomatis harus memeriksa respons API, perubahan database, absence of unintended changes, movement/audit yang diwajibkan, dan invariant stok. Fixture menggunakan label data ilustratif, bukan data Silih Asih.
 

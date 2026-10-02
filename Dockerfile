@@ -3,10 +3,10 @@ FROM php:8.4-cli-alpine
 RUN apk add --no-cache \
         git \
         icu-dev \
-        libpq-dev \
+        sqlite-dev \
         oniguruma-dev \
         unzip \
-    && docker-php-ext-install intl mbstring pdo_pgsql
+    && docker-php-ext-install intl mbstring pdo_sqlite
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 

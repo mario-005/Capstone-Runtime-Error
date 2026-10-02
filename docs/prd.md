@@ -48,7 +48,7 @@ Kasir memasukkan tanggal/jam target, item, jumlah, catatan, dan status konfirmas
 FR-01 autentikasi dan RBAC; FR-02 master menu/bahan/satuan; FR-03 resep per porsi/batch; FR-04 pesanan dengan snapshot item dan resep; FR-05 penerimaan dan pergerakan stok; FR-06 perhitungan kebutuhan/kekurangan; FR-07 alokasi dan pelepasan; FR-08 antrean/jadwal; FR-09 progres produksi; FR-10 laporan; FR-11 audit; FR-12 idempotensi dan konkurensi. Detail aturan ada di [business-rules.md](business-rules.md).
 
 ## 7. Kebutuhan nonfungsional
-NFR-01 integritas stok melalui transaksi dan locking; NFR-02 seluruh endpoint terlindung autentikasi; NFR-03 otorisasi server-side; NFR-04 audit perubahan penting; NFR-05 respons halaman operasional tetap dapat digunakan pada perangkat layar kecil; NFR-06 error dapat dipahami pengguna tanpa membocorkan secret; NFR-07 backup PostgreSQL teruji; NFR-08 timestamp tersimpan konsisten dan timezone dikonfigurasi; NFR-09 dapat diuji otomatis pada aturan stok dan status.
+NFR-01 integritas stok melalui transaksi dan locking; NFR-02 seluruh endpoint terlindung autentikasi; NFR-03 otorisasi server-side; NFR-04 audit perubahan penting; NFR-05 respons halaman operasional tetap dapat digunakan pada perangkat layar kecil; NFR-06 error dapat dipahami pengguna tanpa membocorkan secret; NFR-07 backup SQLite teruji; NFR-08 timestamp tersimpan konsisten dan timezone dikonfigurasi; NFR-09 dapat diuji otomatis pada aturan stok dan status.
 
 ## 8. Acceptance criteria inti
 - AC-01 Pesanan menyimpan `order_type`, item, jumlah, target waktu, dan status terpisah dari status produksi.
