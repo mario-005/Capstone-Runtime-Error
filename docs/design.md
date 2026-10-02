@@ -10,7 +10,7 @@ Navigasi utama usulan: Dashboard; Pesanan (Daftar, Buat, Katering); Dapur; Perse
 |---|---|---|
 | Login | Username/email, password, error umum, session timeout | Semua |
 | Dashboard | Pesanan hari ini, terlambat, siap, kekurangan, stok kritis; filter tanggal | Admin, kasir, dapur, bahan |
-| Pesanan | Daftar dengan tipe/status/target, cari dan filter; buka, ubah, batal | Admin, kasir |
+| Pesanan | Daftar dengan tipe/status/target/sumber (`WEB` atau `WHATSAPP`), cari dan filter; buka, ubah, batal | Admin, kasir |
 | Input pesanan | Tipe, pelanggan, item, jumlah, catatan, target; hitung kebutuhan sebelum konfirmasi | Admin, kasir |
 | Layar dapur | Antrean terurut, detail item, tombol mulai, pemakaian, selesai/siap | Dapur |
 | Katering | Kalender/list target, kebutuhan, kekurangan, alokasi, perubahan | Admin, kasir, dapur |
@@ -30,4 +30,4 @@ Desktop cocok untuk meja kasir; layar kecil memakai tabel menjadi kartu/baris pa
 Loading memakai skeleton pada daftar dan disabled state pada submit; empty state menjelaskan filter atau langkah berikutnya; validasi memeriksa angka positif, target waktu, menu aktif, satuan kompatibel, dan permission; error jaringan menawarkan retry dengan idempotency key yang sama; sukses menampilkan nomor pesanan dan status terbaru. Konflik versi menampilkan data terbaru dan meminta pengguna meninjau ulang. Batal setelah produksi dimulai menjelaskan bahwa pemakaian tidak dikembalikan; pembatalan dan koreksi stok mewajibkan dialog konfirmasi serta alasan.
 
 ## Pencarian, filter, pagination
-Semua daftar transaksi mendukung pencarian nomor/nama, filter status dan tanggal, sort target waktu, serta pagination server-side. Filter ditampilkan sebagai chip yang dapat dihapus dan kondisi kosong menyebut filter aktif. Detail pesanan menampilkan riwayat status, kebutuhan, alokasi, dan pemakaian.
+Semua daftar transaksi mendukung pencarian nomor/nama, filter status, sumber, dan tanggal, sort target waktu, serta pagination server-side. Filter ditampilkan sebagai chip yang dapat dihapus dan kondisi kosong menyebut filter aktif. Detail pesanan menampilkan sumber order, riwayat status, kebutuhan, alokasi, dan pemakaian. Order WhatsApp diberi badge sumber agar petugas mengetahui bahwa order serta pemakaian awal dibuat otomatis.

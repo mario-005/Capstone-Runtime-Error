@@ -25,6 +25,8 @@ Daftar menerima `page`, `per_page` (1–100), `q`, `sort`, dan filter yang diizi
 
 Aplikasi browser milik sendiri memakai Laravel Sanctum stateful session cookie dan CSRF. Login membuat session; client mengambil CSRF cookie sesuai konfigurasi Sanctum sebelum mutasi. Semua endpoint selain CSRF/login membutuhkan user aktif. Otorisasi tetap diperiksa server-side.
 
+Pengecualian tambahan adalah webhook GOWA. Endpoint ini tidak memakai session atau CSRF karena dipanggil service eksternal, tetapi wajib memverifikasi header `X-Hub-Signature-256` sebagai HMAC-SHA-256 atas raw request body menggunakan secret bersama. Signature tidak valid menghasilkan 401 dan payload valid tetapi tidak didukung menghasilkan 202 tanpa aksi. Secret tidak pernah dikirim dalam body, query string, respons, atau log.
+
 | Grup endpoint | OWNER_ADMIN | ORDER_CLERK | KITCHEN | INVENTORY |
 |---|---:|---:|---:|---:|
 | Profil sendiri | R | R | R | R |
@@ -41,11 +43,41 @@ C/R/U/D berarti create/read/update/delete. Penghapusan master yang sudah dipakai
 
 ## Schema respons utama
 
-`Order` menggunakan field database: `id`, `order_number`, `order_type`, `customer_name`, `target_at`, `order_status`, `payment_status`, `notes`, `confirmed_at`, `ready_at`, `handed_over_at`, `cancelled_at`, `lock_version`, `items`, `requirements`, `allocations`, dan `production`. `payment_status` dihilangkan bila pembayaran tidak masuk scope.
+`Order` menggunakan field database: `id`, `order_number`, `order_type`, `source_type`, `customer_name`, `target_at`, `order_status`, `payment_status`, `notes`, `confirmed_at`, `ready_at`, `handed_over_at`, `cancelled_at`, `lock_version`, `items`, `requirements`, `allocations`, dan `production`. `source_reference` hanya untuk korelasi internal dan tidak dikirim ke client biasa. `payment_status` dihilangkan bila pembayaran tidak masuk scope.
 
 `InventoryBalance` berisi `ingredient_id`, `ingredient_name`, `base_unit_id`, `physical_quantity`, `allocated_quantity`, serta nilai turunan `available_quantity`. Nilai turunan tidak disimpan sebagai sumber kebenaran.
 
 Resource master memakai nama field yang sama dengan [db.md](db.md). Password hash, fingerprint, dan data internal tidak pernah dikirim.
+
+## Integrasi WhatsApp melalui GOWA
+
+GOWA dikonfigurasi untuk meneruskan event `message` ke `POST /api/v1/integrations/gowa/webhook`. Kontrak adapter mengikuti versi GOWA yang dipin. Payload minimal yang dibaca aplikasi adalah event, `device_id`, ID pesan eksternal, JID pengirim, penanda pesan berasal dari akun sendiri, penanda chat grup, dan teks pesan. Nama/path field vendor dipetakan di adapter dan tidak boleh tersebar ke domain aplikasi.
+
+Contoh bentuk envelope konseptual berikut bukan pengganti payload vendor yang dipin:
+
+```json
+{
+  "event": "message",
+  "device_id": "device-jid",
+  "payload": {
+    "message_id": "external-id",
+    "sender_jid": "sender-jid",
+    "from_me": false,
+    "is_group": false,
+    "text": "ayam geprek"
+  }
+}
+```
+
+| Method dan endpoint | Akses/fungsi | Validasi utama | Response |
+|---|---|---|---|
+| `POST /integrations/gowa/webhook` | GOWA; menerima event pesan | signature HMAC, schema/ukuran payload, event `message`, `device_id`, deduplikasi ID pesan | 202 untuk diterima/diabaikan; 401 signature salah; 422 schema salah; 429 rate limit |
+
+Urutan pemrosesan: verifikasi signature terhadap raw body; parse dan validasi payload; deduplikasi pasangan `device_id` dan ID pesan; abaikan pesan dari akun sendiri, event non-pesan, dan grup bila belum diizinkan; trim teks; cari satu menu aktif dengan nama yang sama secara case-insensitive; lalu validasi resep aktif dan ketersediaan seluruh bahan untuk satu porsi.
+
+Jika valid, service domain menjalankan satu transaksi yang menyimpan event, membuat order `DIRECT` bersumber `WHATSAPP`, satu item berjumlah 1, snapshot requirement, alokasi, produksi `IN_PROGRESS`, material usage sesuai resep, stock movement, pengurangan `physical_quantity`/`allocated_quantity`, dan histori status hingga `IN_PREPARATION`. Respons WhatsApp baru dikirim melalui REST GOWA setelah commit. Bila nama menu/resep/stok tidak valid, event mencatat hasil penolakan tanpa membuat order atau mengubah stok.
+
+Balasan berhasil memuat nomor pesanan dan nama menu. Balasan gagal hanya menyatakan nama menu tidak dikenali, resep belum tersedia, atau bahan tidak mencukupi tanpa menampilkan detail resep, jumlah stok, ID database, maupun menu nonaktif. Request keluar menyertakan autentikasi dan `X-Device-Id`/`device_id` bila versi GOWA mewajibkannya, serta memakai timeout dan retry terbatas. Retry pengiriman tidak boleh menjalankan ulang transaksi order.
 
 ## Endpoint autentikasi dan master
 
@@ -124,4 +156,4 @@ Header `Idempotency-Key` wajib pada `confirm`, allocation recalculation, cancel,
 
 Mutasi menerima `lock_version`. Versi usang menghasilkan 409 `STALE_VERSION` beserta resource versi terbaru. Stok/alokasi tidak cukup menghasilkan 409 `INVENTORY_CONFLICT` atau, ketika `allow_shortage=true` dan kebijakan mengizinkan, respons sukses dengan shortage eksplisit.
 
-Confirm/reallocation, usage, fulfillment, cancel, receipt, waste, dan adjustment masing-masing selesai dalam satu transaksi database dengan row lock sebagaimana [db.md](db.md). Side effect eksternal tidak dijalankan di tengah transaksi.
+Confirm/reallocation, usage, fulfillment, cancel, receipt, waste, dan adjustment masing-masing selesai dalam satu transaksi database dengan row lock sebagaimana [db.md](db.md). Side effect eksternal tidak dijalankan di tengah transaksi. Pemanggilan REST GOWA dilakukan setelah pencatatan event berhasil di-commit atau melalui job queue.

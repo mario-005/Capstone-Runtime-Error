@@ -16,6 +16,7 @@ ID mengacu ke [prd.md](prd.md), [business-rules.md](business-rules.md), [design.
 | FR-10 Dashboard/laporan | US-09, US-11 | BR-05, BR-15 | Dashboard, Laporan | `orders`, status histories, `stock_movements`, `order_requirements` | `/reports/operations` dan endpoint list | TC-14, TC-15, UAT/usability |
 | FR-11 Audit | US-10 | BR-17, BR-20 | Audit log | `audit_logs`, status histories | `/audit-logs` | TC-05, TC-06, TC-07, TC-12, TC-16 |
 | FR-12 Idempotensi/konkurensi | US-06, US-08 | BR-18, BR-19 | Dialog konflik dan retry aman | `idempotency_keys`, `lock_version`, tabel transaksi | seluruh endpoint mutasi transaksi | TC-04, TC-11, TC-13, TC-18 |
+| FR-13 Order otomatis GOWA/WhatsApp | US-13 | BR-21–BR-25 | Pesanan dan antrean dapur; konfigurasi/monitoring integrasi | `menus`, `recipe_versions`, `orders`, `order_items`, `productions`, `material_usages`, `stock_movements`, `whatsapp_webhook_events` | `POST /integrations/gowa/webhook`; REST kirim pesan GOWA | TC-19–TC-23, UAT |
 
 ## Cakupan nonfungsional
 
@@ -29,5 +30,6 @@ ID mengacu ke [prd.md](prd.md), [business-rules.md](business-rules.md), [design.
 | NFR-07 backup | architecture dan milestone hardening | restore drill minggu 14 |
 | NFR-08 waktu/timezone | `timestamptz`, ISO-8601 offset | TC-14 dan timezone test |
 | NFR-09 testability | service/domain terpisah, unit dan feature test | CI test suite |
+| NFR-10 webhook aman dan tangguh | HMAC raw body, validasi schema, rate limit, deduplikasi, timeout/retry terbatas, redaksi log | TC-20/21/23 dan contract test GOWA |
 
 US-12 pembayaran tetap `Could` dan belum memiliki implementasi lengkap sampai V-12 disetujui. Target KPI numerik belum ditetapkan sampai baseline V-03/V-05/V-06 tersedia; ini gap validasi, bukan izin untuk mengarang angka.

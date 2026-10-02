@@ -30,6 +30,14 @@ Dokumen ini adalah sumber utama aturan bisnis. API, UI, dan database harus mengi
 - **BR-19:** Alokasi, pemakaian, pembatalan, dan perubahan kebutuhan memakai transaksi database dan row lock pada inventory item/alokasi terkait.
 - **BR-20:** Perubahan penting menyimpan actor, waktu, aksi, entitas, dan ringkasan sebelum/sesudah; data audit tidak dihapus dari UI biasa.
 
+## Integrasi WhatsApp dan GOWA
+
+- **BR-21:** Hanya event GOWA bertipe `message` dengan signature HMAC-SHA-256 yang valid yang diproses. Secret disimpan di environment/secret store, tidak di repository atau log. Payload dibatasi ukurannya dan divalidasi terhadap kontrak versi GOWA yang dipin.
+- **BR-22:** Isi pesan dikenali dengan menghapus spasi di awal/akhir dan membandingkan secara case-insensitive dengan nama menu aktif. Kecocokan harus tepat dan unik; satu event yang cocok berarti satu porsi. Pesan tambahan seperti `2 ayam geprek` atau `ayam geprek pedas` tidak diproses sampai format kuantitas/catatan ditetapkan.
+- **BR-23:** Menu yang cocok wajib memiliki resep aktif dan seluruh kebutuhan satu porsi harus tersedia. Jika valid, pembuatan order `DIRECT` bersumber `WHATSAPP`, snapshot resep, alokasi, produksi `IN_PROGRESS`, material usage, stock movement, dan pengurangan stok dilakukan dalam satu transaksi. Jika satu langkah gagal atau bahan tidak cukup, seluruh transaksi dibatalkan sehingga tidak ada order parsial atau stok negatif.
+- **BR-24:** Setiap event pesan diproses maksimal sekali berdasarkan ID pesan eksternal bersama `device_id`. Event duplikat mengacu pada order/hasil sebelumnya dan tidak membuat order, usage, atau movement tambahan. Pesan dari akun sendiri, event non-pesan, dan pesan grup bila belum diizinkan tidak mengubah data. Retry balasan GOWA tidak boleh mengulangi transaksi order.
+- **BR-25:** Order WhatsApp yang berhasil masuk sebagai `IN_PREPARATION` dengan kuantitas item 1, `confirmed_at`/`started_at` dari waktu pemrosesan, dan `target_at` dari target layanan direct yang telah dikonfigurasi. Order menyimpan sumber serta event asal. Balasan keberhasilan hanya memuat nomor order dan nama menu; balasan gagal memberi alasan umum tanpa membocorkan resep, jumlah stok, atau data internal. Jika target layanan direct belum dikonfigurasi, event ditolak agar sistem tidak mengarang target waktu.
+
 ## Ilustrasi angka
 Semua angka berikut ilustrasi, bukan data Silih Asih. Jika fisik 10 kg dan teralokasi 3 kg, tersedia 7 kg. Pesanan baru memerlukan 5 kg, sehingga alokasi baru dapat dibuat dan tersedia tersisa 2 kg. Jika pesanan baru memerlukan 8 kg, hanya 7 kg yang dapat dialokasikan dan kekurangan 1 kg dicatat; fisik tetap 10 kg.
 

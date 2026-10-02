@@ -22,6 +22,10 @@ Status awal seluruh item: **Belum dikonfirmasi**. Tidak ada status `Dikonfirmasi
 | V-16 | Apakah aplikasi hanya digunakan internal melalui browser web? | Pemilik/semua fungsi | Auth, perangkat, dan kebutuhan client lain | Belum dikonfirmasi |
 | V-17 | Apakah jaringan tersedia dan stabil di kasir serta dapur? | Pemilik/semua fungsi | Polling, retry, dan kebutuhan offline | Belum dikonfirmasi |
 | V-18 | Berapa ukuran kemasan pembelian, presisi, dan kebijakan pembulatan tiap bahan? | Bahan/dapur | Requirement, shortage, dan rencana pengadaan | Belum dikonfirmasi |
+| V-19 | Nomor WhatsApp mana yang dipakai, siapa pemiliknya, dan apakah khusus integrasi? | Pemilik | Provisioning GOWA, akses perangkat, dan pemulihan akun | Belum dikonfirmasi |
+| V-20 | Apakah kecocokan harus sama persis dengan nama menu dan apa isi balasan berhasil/gagal? | Pemilik/kasir | Normalisasi nama menu, presenter respons, dan risiko salah order | Belum dikonfirmasi |
+| V-21 | Apakah pesan grup diabaikan; bagaimana format jumlah lebih dari satu dan catatan pesanan? | Pemilik/kasir | Filter webhook, parser kuantitas/catatan, dan batas scope percakapan | Belum dikonfirmasi |
+| V-22 | Apakah pemilik menerima risiko GOWA yang tidak resmi; berapa retensi metadata event dan kebijakan data kontak? | Pemilik | Pilihan provider, privasi, logging, retensi, dan go-live | Belum dikonfirmasi |
 
 ## Data lapangan yang diminta
 Contoh menu dan resep, satuan/kemasan pembelian, daftar bahan, 1-2 minggu sampel order yang dianonimkan, catatan stok/movement, jadwal katering, waktu siap/serah, serta daftar alat dan kapasitas. Jangan menyalin data pribadi tanpa izin.

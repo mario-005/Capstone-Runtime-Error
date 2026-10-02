@@ -31,6 +31,14 @@ Kasir membuat draft; sistem memvalidasi menu aktif dan jumlah; pengguna berwenan
 ## Pesanan katering
 Kasir mengisi tanggal/jam pemenuhan dan jumlah; sistem menghitung kebutuhan total; bahan tersedia dialokasikan, kekurangan menjadi kebutuhan pengadaan; pemilik atau pengguna berwenang menyetujui jadwal; dapur melihat jadwal dan batch; pemakaian aktual dicatat; pesanan ditandai siap dan diserahkan. Katering tidak boleh diasumsikan otomatis memiliki prioritas lebih tinggi.
 
+## Pesanan otomatis melalui WhatsApp
+
+Pengirim mengirim nama menu, misalnya `ayam geprek`, ke nomor WhatsApp usaha. GOWA menerima pesan dan mengirim event `message` ke webhook Laravel. Sistem memvalidasi signature dan deduplikasi, mengabaikan pesan dari akun sendiri serta event non-pesan, menghapus spasi tepi, lalu mencocokkan teks tanpa membedakan kapitalisasi dengan nama menu aktif.
+
+Satu pesan yang cocok berarti satu porsi. Sistem memvalidasi resep aktif dan ketersediaan seluruh bahan. Jika valid, satu transaksi database membuat order `DIRECT` bersumber `WHATSAPP`, satu order item berjumlah 1, snapshot kebutuhan, alokasi, produksi berstatus `IN_PROGRESS`, pemakaian bahan sesuai resep, movement stok, serta histori terkait. Pemakaian mengurangi stok fisik dan menutup bagian alokasi yang langsung dikonsumsi. Order masuk ke antrean dapur dalam status `IN_PREPARATION`, lalu sistem meminta GOWA mengirim konfirmasi berisi nomor pesanan dan nama menu.
+
+Jika nama tidak cocok, resep belum aktif, atau salah satu bahan tidak cukup, transaksi order/pemakaian tidak dijalankan dan stok tidak berubah; pengirim mendapat pesan penolakan umum. Event duplikat mengembalikan hasil sebelumnya tanpa membuat order atau movement baru. Format jumlah selain satu, catatan tambahan, pesan grup, perubahan, dan pembatalan lewat WhatsApp menunggu validasi V-19 sampai V-22.
+
 ## Sumber daya bersama
 Jika validasi membuktikan sumber daya bersama, satu alokasi persediaan dan antrean kapasitas harus memperhitungkan kedua jenis pesanan. Jika terpisah, gunakan lokasi/stok terpisah atau kebijakan eksplisit. Sistem tidak memilih salah satu tanpa keputusan pemilik.
 

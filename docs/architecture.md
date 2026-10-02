@@ -1,11 +1,14 @@
 # Architecture
 
 ## Keputusan
-Arsitektur usulan: monolith modular Laravel dengan REST API, React + Tailwind, SQLite, dan Docker Compose untuk development. Microservices, AI, layanan berbayar, dan infrastruktur rumit dihindari karena belum ada kebutuhan atau bukti volume. Fondasi yang terpasang saat ini adalah Laravel 13.33 pada PHP 8.4, React 19.3, Tailwind CSS 4.3, Vite 8.3, dan SQLite 3. Lockfile menjadi sumber versi persis; upgrade mayor harus melalui pemeriksaan kompatibilitas dan pengujian.
+Arsitektur usulan: monolith modular Laravel dengan REST API, React + Tailwind, SQLite, dan Docker Compose untuk development. Microservices, AI, layanan berbayar, dan infrastruktur rumit dihindari karena belum ada kebutuhan atau bukti volume. Fondasi yang terpasang saat ini adalah Laravel 13.34 dan Sanctum 4.3 pada PHP 8.4, React 19.3, Tailwind CSS 4.3, Vite 8.3, dan SQLite 3. Lockfile menjadi sumber versi persis; upgrade mayor harus melalui pemeriksaan kompatibilitas dan pengujian.
 
 ## Diagram
 ```mermaid
 flowchart LR
+ WhatsApp[WhatsApp user] <--> GOWA[GOWA gateway]
+ GOWA -->|signed message webhook| API
+ API -->|send text via REST| GOWA
  Browser[React web] --> API[Laravel REST API]
  API --> Auth[Auth and policy]
  API --> Domain[Application services]
@@ -15,11 +18,11 @@ flowchart LR
 ```
 
 ## Modul
-`IdentityAccess`: user, role, policy; `Catalog`: menu, ingredient, unit, recipe version; `Ordering`: order, item, requirement, status; `Inventory`: balance, movement, allocation; `Production`: queue, production, usage; `Reporting`: read models/query; `Audit`: audit and idempotency. Modul berkomunikasi melalui service/domain contract internal, bukan memanggil tabel modul lain sembarang.
+`IdentityAccess`: user, role, policy; `Catalog`: menu, ingredient, unit, recipe version; `Ordering`: order, item, requirement, status; `Inventory`: balance, movement, allocation; `Production`: queue, production, usage; `Reporting`: read models/query; `Audit`: audit and idempotency; `WhatsAppIntegration`: validasi webhook GOWA, normalisasi nama menu, deduplikasi event, orkestrasi order satu porsi, dan client REST GOWA. Modul berkomunikasi melalui service/domain contract internal, bukan memanggil tabel modul lain sembarang.
 
 ## Struktur folder usulan
 ```text
-app/Domain/{IdentityAccess,Catalog,Ordering,Inventory,Production,Reporting,Audit}
+app/Domain/{IdentityAccess,Catalog,Ordering,Inventory,Production,Reporting,Audit,WhatsAppIntegration}
 app/Http/Controllers/Api/V1
 app/Http/Requests
 app/Policies
@@ -35,6 +38,10 @@ Dependensi modul diarahkan melalui application service: `Ordering` membaca kontr
 ## Keamanan dan operasi
 Password di-hash framework; session cookie, CSRF, rate limit login, least privilege, validasi input, output escaping, HTTPS production, secret lewat environment/secret store, dan tidak ada secret di dokumentasi. Log berisi request ID, actor, route, durasi, dan error tanpa password atau data sensitif. Error internal dipetakan ke pesan umum.
 
+Webhook GOWA dikecualikan dari autentikasi session dan CSRF, tetapi wajib memakai HTTPS dan memverifikasi `X-Hub-Signature-256` terhadap raw request body dengan webhook secret. Perbandingan signature harus constant-time. Endpoint diberi rate limit dan batas payload; event ditolak sebelum diproses bila signature atau schema tidak valid. Credential REST GOWA, webhook secret, JID/nomor lengkap, dan isi pesan tidak masuk log. Akses keluar menuju GOWA dibatasi pada host yang dikonfigurasi untuk mencegah SSRF.
+
+GOWA dijalankan sebagai service terpisah dengan versi image/API yang dipin. Kontrak integrasi awal memakai event `message`, `device_id`, ID pesan eksternal, JID pengirim, penanda pesan dari akun sendiri, dan teks pesan sesuai payload versi yang dipin. Adapter meneruskan perintah domain ke service transaksi yang membuat order, alokasi, produksi, usage, dan movement secara atomik; panggilan balasan ke GOWA baru dilakukan setelah commit. Upgrade GOWA memerlukan contract test karena payload dapat berubah. GOWA adalah proyek tidak resmi; penggunaan production memerlukan penerimaan risiko dan evaluasi WhatsApp Business Platform resmi.
+
 Backup file SQLite terjadwal, terenkripsi, dan diuji restore di environment terpisah. Backup harus dibuat melalui mekanisme backup SQLite agar snapshot konsisten. Frekuensi, retensi, RPO, dan RTO menunggu V-13/V-14 dan tidak boleh ditebak. Migration production dijalankan terkontrol setelah backup dan memiliki rencana rollback/forward-fix.
 
 ## Environment dan deployment minimum
@@ -49,4 +56,4 @@ Backup file SQLite terjadwal, terenkripsi, dan diuji restore di environment terp
 Deployment minimum adalah satu host aplikasi yang menjalankan web server, PHP/Laravel, build statis React, dan file SQLite pada storage persisten. Wajib ada HTTPS, health check aplikasi/database, log rotation, backup terjadwal, sinkronisasi waktu, dan prosedur restore. Spesifikasi CPU/RAM/storage baru ditentukan setelah volume V-03 dan anggaran/perangkat V-13 tersedia.
 
 ## Queue dan realtime
-MVP tidak memerlukan queue untuk transaksi inti karena konsistensi harus selesai sinkron. Queue boleh dipakai kemudian untuk ekspor laporan/notifikasi yang tidak menentukan saldo. Realtime tidak wajib; layar dapur dapat polling/refresh terkontrol sampai kebutuhan dan jaringan divalidasi.
+MVP tidak memerlukan queue untuk transaksi inti karena konsistensi harus selesai sinkron. Webhook GOWA harus mengembalikan respons cepat setelah event tervalidasi dan dideduplikasi; pengiriman balasan dapat dijalankan sebagai job queue dengan retry terbatas dan idempotensi agar gangguan GOWA tidak menahan request webhook. Realtime tidak wajib; layar dapur dapat polling/refresh terkontrol sampai kebutuhan dan jaringan divalidasi.

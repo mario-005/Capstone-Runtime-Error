@@ -28,6 +28,11 @@ Setiap test otomatis harus memeriksa respons API, perubahan database, absence of
 | TC-16 | Stok fisik tersedia; user inventory berizin | Catat waste beralasan; adjustment tanpa alasan; adjustment valid | Waste membuat movement OUT; tanpa alasan ditolak; adjustment valid mengubah saldo sekali dan memiliki actor/reason/audit | BR-06/17 |
 | TC-17 | Order memiliki dua item, masing-masing quantity 5 | Catat fulfillment 3 pada item A; lalu sisa A dan seluruh B | Status menjadi `PARTIAL`/`PARTIALLY_FULFILLED`, lalu `COMPLETED`/`READY`; fulfilled per item tidak melebihi order quantity | BR-14 |
 | TC-18 | Order version 2 sedang diedit dua user | User A menyimpan dengan version 2; user B mengirim perubahan berbeda dengan version 2 | A berhasil dan version bertambah; B mendapat 409 `STALE_VERSION` dan state terbaru | BR-19 |
+| TC-19 | Menu Ayam Geprek dan resep satu porsi aktif; seluruh bahan cukup; GOWA fixture bertanda tangan valid | Kirim event unik berisi `ayam geprek`, ` AYAM GEPREK `, dan `Ayam Geprek` pada state awal terpisah | Setiap event membuat satu order `DIRECT` item quantity 1, snapshot resep, produksi `IN_PROGRESS`, usage/movement sesuai resep, stok berkurang tepat sekali, dan balasan memuat nomor order | US-13, BR-21–25, AC-13/14 |
+| TC-20 | Webhook secret diketahui test | Kirim payload dengan signature salah, tanpa signature, schema salah, dan payload melebihi batas | Signature salah/hilang ditolak 401; schema salah 422; payload besar ditolak; tidak ada event/job/balasan dibuat; secret dan payload tidak masuk log | BR-21, AC-15 |
+| TC-21 | Satu event `ayam geprek` valid dengan ID eksternal tetap | Kirim event sama dua kali dan jalankan retry balasan setelah timeout ambigu | Event, order, usage, dan movement masing-masing hanya dibuat sekali; stok hanya berkurang sekali; retry hanya mengirim ulang hasil transaksi yang sama | BR-24, AC-14 |
+| TC-22 | Fixture event dari akun sendiri, acknowledgement, grup, nama menu tidak tepat, menu nonaktif, dan resep tidak aktif | Kirim seluruh fixture ke webhook | Semua diabaikan/ditolak sesuai alasan; tidak ada order, usage, movement, perubahan stok, atau loop balasan | BR-22–25, AC-15 |
+| TC-23 | Ayam Geprek memerlukan salah satu bahan yang tidak cukup; GOWA sempat tidak tersedia | Proses pesan, lalu uji retry balasan penolakan setelah GOWA pulih | Tidak ada order parsial atau perubahan stok; status penolakan tersimpan; retry balasan tidak menjalankan transaksi order | BR-23–25, NFR-10 |
 
 ## Pengujian transaksi dan integrasi
 
@@ -35,9 +40,11 @@ TC-04 wajib memakai dua koneksi database, barrier sebelum lock, dan commit yang 
 
 Feature test end-to-end minimal: order → recipe snapshot → requirement → allocation → production → usage → fulfillment → ready → hand-over. Jalur pembatalan diuji terpisah sebelum dan sesudah pemakaian. Retry deadlock dibatasi dan hanya dilakukan dengan idempotency key.
 
+Contract test GOWA memakai fixture payload dari versi image/API yang dipin dan raw body asli untuk memverifikasi HMAC. Test tidak memanggil WhatsApp sungguhan: client REST GOWA di-fake dan diperiksa tujuan host, autentikasi, device scope, timeout, isi balasan, serta jumlah pemanggilan. Integration test TC-19/21/23 juga memverifikasi atomicity order–usage–movement dan invariant stok. Upgrade GOWA wajib memperbarui fixture dan meluluskan TC-19 sampai TC-23 sebelum deployment.
+
 ## UAT
 
-UAT melibatkan fungsi pemilik/admin, penerima pesanan, dapur, serta pengelola bahan setelah peran aktual dikonfirmasi. Setiap sesi mencatat skenario, perangkat, fungsi peserta, hasil pass/fail, masalah, keputusan, dan bukti yang boleh disimpan. Skenario UAT mencakup direct, katering dengan shortage, perubahan, pembatalan, pemakaian aktual, koreksi stok, antrean, dan laporan. UAT tidak dijalankan pada production tanpa backup dan persetujuan.
+UAT melibatkan fungsi pemilik/admin, penerima pesanan, dapur, serta pengelola bahan setelah peran aktual dikonfirmasi. Setiap sesi mencatat skenario, perangkat, fungsi peserta, hasil pass/fail, masalah, keputusan, dan bukti yang boleh disimpan. Skenario UAT mencakup direct, katering dengan shortage, perubahan, pembatalan, pemakaian aktual, koreksi stok, antrean, laporan, serta order satu porsi dari chat nama menu melalui nomor WhatsApp uji. UAT tidak dijalankan pada production tanpa backup dan persetujuan.
 
 ## Usability
 
